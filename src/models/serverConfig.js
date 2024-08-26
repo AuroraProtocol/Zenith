@@ -1,12 +1,11 @@
+// models/serverConfig.js
 const mongoose = require('mongoose');
 
-const serverSchema = new mongoose.Schema({
-    serverId: { type: String, unique: true, required: true },
-    name: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-    createdBy: { type: String, required: true },
-    logChannelId: { type: String }, // Pour les logs
-    events: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Events' }] // Référence aux événements
+const serverConfigSchema = new mongoose.Schema({
+    serverId: { type: String, required: true, unique: true },
+    name: { type: String, required: false },
+    color: { type: String, default: '#7C30B8' },
+    lfgverse: { type: Boolean, default: false }
 });
 
-module.exports = mongoose.model('ServerCollection', serverSchema);
+module.exports = mongoose.model('ServerCollection', serverConfigSchema);

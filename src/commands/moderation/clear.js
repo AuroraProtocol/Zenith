@@ -28,10 +28,8 @@ module.exports = {
             return interaction.reply({ content: 'Vous devez entrer un nombre entre 1 et 100.', ephemeral: true });
         }
 
-        // Fetch messages
         const messages = await interaction.channel.messages.fetch({ limit: amount });
 
-        // Filter messages
         let filteredMessages = messages.filter(msg => msg.id !== interaction.id);
 
         if (exceptUser) {

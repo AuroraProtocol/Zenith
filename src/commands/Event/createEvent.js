@@ -1,3 +1,4 @@
+// commands/event/createEvent.js
 const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 
 module.exports = {
@@ -29,7 +30,7 @@ module.exports = {
 
         const dateInput = new TextInputBuilder()
             .setCustomId('dateInput')
-            .setLabel('Date (YYYY-MM-DD HH:mm)')
+            .setLabel('Date (AAAA-MM-JJ HH:MM)')
             .setStyle(TextInputStyle.Short)
             .setRequired(true);
 

@@ -13,7 +13,12 @@ const eventSchema = new mongoose.Schema({
     creator: { type: String, required: true },
     participants: { type: [String], default: [] }, // Participants inscrits
     declined: { type: [String], default: [] },     // Participants ayant décliné
-    tentative: { type: [String], default: [] }     // Participants en tentative
+    tentative: { type: [String], default: [] },    // Participants en tentative
+    sharedServers: [{
+        serverId: String,
+        messageId: String,
+        channelId: String
+    }]
 });
 
 module.exports = mongoose.model('Event', eventSchema);

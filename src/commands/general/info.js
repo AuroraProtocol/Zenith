@@ -1,12 +1,192 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, UserFlagsBitField } = require('discord.js');
+const ServerCollection = require('../../models/serverConfig');
+const Canvas = require('canvas');
+const sharp = require('sharp');
+const fetch = require('node-fetch');
+const path = require('path');
+
+// Charger les polices personnalisées
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-Black.ttf'), { family: 'Satoshi', weight: '900' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-BlackItalic.ttf'), { family: 'Satoshi', weight: '900', style: 'italic' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-Bold.ttf'), { family: 'Satoshi', weight: 'bold' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-BoldItalic.ttf'), { family: 'Satoshi', weight: 'bold', style: 'italic' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-Italic.ttf'), { family: 'Satoshi', style: 'italic' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-Light.ttf'), { family: 'Satoshi', weight: '300' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-LightItalic.ttf'), { family: 'Satoshi', weight: '300', style: 'italic' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-Medium.ttf'), { family: 'Satoshi', weight: '500' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-MediumItalic.ttf'), { family: 'Satoshi', weight: '500', style: 'italic' });
+Canvas.registerFont(path.join(__dirname, '../../fonts/Satoshi-Regular.ttf'), { family: 'Satoshi', weight: 'normal' });
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('info')
-        .setDescription('Provides information about the bot.'),
-    async execute(interaction) {
+        .setName('information')
+        .setDescription('Affiche une image avec les informations d\'un utilisateur.')
+        .addUserOption(option =>
+            option.setName('utilisateur')
+                .setDescription('Mentionnez un utilisateur pour voir ses informations')
+                .setRequired(false)),
 
-        await interaction.reply('This bot is a demonstration of a Discord bot built in JavaScript.');
+    async execute(interaction) {
+        function truncateText(context, text) {
+            const maxWidth = 380;
+            let width = context.measureText(text).width;
+            const ellipsis = '...';
+            const ellipsisWidth = context.measureText(ellipsis).width;
+
+            if (width <= maxWidth) {
+                return text;
+            }
+
+            while (width >= maxWidth - ellipsisWidth) {
+                text = text.slice(0, -1);
+                width = context.measureText(text).width;
+            }
+
+            return text + ellipsis;
+        }
+        function formatDate(date) {
+            const options = { day: '2-digit', month: 'long', year: 'numeric' };
+            return new Intl.DateTimeFormat('fr-FR', options).format(date);
+        }
+        const serverConfig = await ServerCollection.findOne({ serverId: interaction.guild.id });
+        let color = serverConfig ? serverConfig.color : '#7C30B8';
+
+        const user = interaction.options.getUser('utilisateur') || interaction.user;
+        const member = interaction.guild.members.cache.get(user.id);
+
+
+        const margin = 20;
+        const canvasWidth = 820 + margin * 2;
+        const canvasHeight = 700 + margin * 2;
+
+        const canvas = Canvas.createCanvas(canvasWidth, canvasHeight);
+        const context = canvas.getContext('2d');
+        const backgroundPath = path.join(__dirname, '../../img/background/informationUser_template.png');
+        const background = await Canvas.loadImage(backgroundPath);
+        context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
+
+        const avatarUrl = user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 });
+
+        try {
+            const response = await fetch(avatarUrl);
+            const buffer = await response.buffer();
+
+            const pngBuffer = await sharp(buffer).png().toBuffer();
+            const img = await Canvas.loadImage(pngBuffer);
+
+            const avatarX = margin;
+            const avatarY = margin;
+            const avatarWidth = 270;
+            const avatarHeight = 270;
+            const avatarRadius = 10;
+
+            context.save();
+            context.beginPath();
+            context.moveTo(avatarX + avatarRadius, avatarY);
+            context.lineTo(avatarX + avatarWidth - avatarRadius, avatarY);
+            context.quadraticCurveTo(avatarX + avatarWidth, avatarY, avatarX + avatarWidth, avatarY + avatarRadius);
+            context.lineTo(avatarX + avatarWidth, avatarY + avatarHeight - avatarRadius);
+            context.quadraticCurveTo(avatarX + avatarWidth, avatarY + avatarHeight, avatarX + avatarWidth - avatarRadius, avatarY + avatarHeight);
+            context.lineTo(avatarX + avatarRadius, avatarY + avatarHeight);
+            context.quadraticCurveTo(avatarX, avatarY + avatarHeight, avatarX, avatarY + avatarHeight - avatarRadius);
+            context.lineTo(avatarX, avatarY + avatarRadius);
+            context.quadraticCurveTo(avatarX, avatarY, avatarX + avatarRadius, avatarY);
+            context.closePath();
+            context.lineWidth = 1;
+            context.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            context.stroke();
+            context.clip();
+            context.drawImage(img, avatarX, avatarY, avatarWidth, avatarHeight);
+            context.restore();
+
+            const nameX = avatarX + avatarWidth + 50;
+            const nameY = avatarY + 40;
+            context.font = 'bold 24px Satoshi';
+            context.fillStyle = '#ffffff';
+            const truncatedUsername = truncateText(context, user.username.toUpperCase(), canvasWidth - nameX - margin);
+            context.fillText(truncatedUsername, nameX, nameY);
+
+            const nicknameY = nameY + 80;
+            context.font = 'italic 500 24px Satoshi';
+            context.fillStyle = '#ffffff';
+            const truncatedNickname = truncateText(context, (member.nickname || '').toUpperCase(), canvasWidth - nameX - margin);
+            context.fillText(truncatedNickname, nameX, nicknameY);
+
+            const userFlags = user.flags?.toArray() || [];
+            console.log(userFlags);
+            const badgeMap = {
+                'Staff': 'discord_employee.svg',
+                'Partner': 'partnered_server_owner.svg',
+                'Hypesquad': 'hypesquad_events.svg',
+                'BugHunterLevel1': 'bughunter_level_1.svg',
+                'BugHunterLevel2': 'bughunter_level_2.svg',
+                'PremiumEarlySupporter': 'early_supporter.svg',
+                'VerifiedBot': 'verified_bot.svg',
+                'VerifiedDeveloper': 'early_verified_bot_developer.svg',
+                'CertifiedModerator': 'discord_certified_moderator.svg',
+                'ActiveDeveloper': 'active_developer.svg',
+                'HypeSquadOnlineHouse1': 'house_bravery.svg',
+                'HypeSquadOnlineHouse2': 'house_brilliance.svg',
+                'HypeSquadOnlineHouse3': 'house_balance.svg',
+                'TeamPseudoUser': 'username.png',
+                'Nitro': 'discord_nitro.svg',
+            };
+            if (member.premiumSince) {
+                userFlags.push('Nitro');
+            }
+            if (member.TeamPseudoUser) {
+                userFlags.push('TeamPseudoUser');
+            }
+            const badgesX = nameX - 22;
+            const badgesY = nicknameY + 48;
+            const badgeSize = 30;
+            const badgeSpacing = 35;
+
+            for (const [index, flag] of userFlags.entries()) {
+                const badgeFileName = badgeMap[flag];
+                if (badgeFileName) {
+                    const badgePath = path.join(__dirname, `../../img/badges/${badgeFileName}`);
+                    const badgeBuffer = await sharp(badgePath).png().toBuffer();
+                    const badgeImg = await Canvas.loadImage(badgeBuffer);
+                    context.drawImage(badgeImg, badgesX + (badgeSize + badgeSpacing) * index, badgesY, badgeSize, badgeSize);
+                }
+            }
+            const infoX = margin + 20;
+            let infoY = 365;
+            const lineHeight = 108;
+
+            context.font = 'bold 28px Satoshi';
+            context.fillStyle = '#ffffff';
+
+            const creationDate = `Créé le: ${formatDate(user.createdAt)}`;
+            const joinDate = member.joinedAt ? `Rejoint le: ${formatDate(member.joinedAt)}` : 'Rejoint le: Inconnu';
+            const messageCount = 'Nombre de messages: Non disponible';
+            const userId = `ID: ${user.id}`;
+            context.fillText(creationDate, infoX, infoY);
+            infoY += lineHeight;
+            context.fillText(joinDate, infoX, infoY);
+            infoY += lineHeight;
+            context.fillText(messageCount, infoX, infoY);
+            infoY += lineHeight;
+            context.fillText(userId, infoX, infoY);
+
+            const bandeauPath = path.join(__dirname, '../../img/icons/bandeau_beta.png');
+            const bandeauBuffer = await sharp(bandeauPath).png().toBuffer();
+            const bandeauImg = await Canvas.loadImage(bandeauBuffer);
+            const bandeauX = canvasWidth - 113;
+            const bandeauY = canvasHeight - 113;
+            context.drawImage(bandeauImg, bandeauX, bandeauY, 113, 113);
+
+            const attachment = new AttachmentBuilder(canvas.toBuffer(), { name: 'information.png' });
+            const embed = new EmbedBuilder()
+                .setColor(color)
+                .setTitle(`Informations sur ${user.username}`)
+                .setImage('attachment://information.png')
+                .setTimestamp();
+            await interaction.reply({ embeds: [embed], files: [attachment] });
+        } catch (error) {
+            console.error('Erreur lors du traitement de l\'image:', error);
+            await interaction.reply({ content: 'Une erreur s\'est produite lors de la génération de l\'image.', ephemeral: true });
+        }
     },
 };
-

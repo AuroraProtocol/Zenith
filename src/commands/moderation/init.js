@@ -1,14 +1,24 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js'); // Assurez-vous d'utiliser EmbedBuilder
-const ServerCollection = require('../../models/serverConfig'); // Ajustez le chemin
+const { EmbedBuilder } = require('discord.js');
+const ServerCollection = require('../../models/serverConfig');
+
+function isValidHexColor(color) {
+    const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+    return hexColorRegex.test(color);
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('init')
-        .setDescription('Configure le serveur avec les informations de base et un canal de log.')
+        .setDescription('Configure le serveur avec les informations de base')
         .addStringOption(option =>
-            option.setName('logchannel')
-                .setDescription('ID du canal de log (optionnel)')), // Assurez-vous d'ajouter cette option si vous voulez utiliser logChannelId
+            option.setName('color')
+                .setDescription('Couleur des embeds en format hexadécimal (optionnel)'))
+        .addBooleanOption(option =>
+            option.setName('lfgverse')
+                .setDescription('Activer ou désactiver le LFG multi-serveurs')
+        ),
+
     async execute(interaction) {
         // Vérifiez si l'utilisateur a les permissions nécessaires
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
@@ -18,45 +28,63 @@ module.exports = {
             });
         }
 
-        const logChannelId = interaction.options.getString('logchannel') || null;
+        let colorEmbed = interaction.options.getString('color') || '#7C30B8';
+        const lfgverse = interaction.options.getBoolean('lfgverse') || false; // Désactivé par défaut
 
+        if (!colorEmbed.startsWith('#')) {
+            colorEmbed = `#${colorEmbed}`;
+        }
+        if (!isValidHexColor(colorEmbed)) {
+            return interaction.reply({
+                content: 'La couleur spécifiée n\'est pas valide. Veuillez entrer une couleur hexadécimale valide (ex: #RRGGBB).',
+                ephemeral: true
+            });
+        }
         try {
-            // Cherchez si un document pour ce serveur existe déjà
             let server = await ServerCollection.findOne({ serverId: interaction.guild.id });
 
             if (server) {
-                // Mettez à jour le canal de log si un ID est fourni
-                server.logChannelId = logChannelId;
+                server.color = colorEmbed;
+                server.lfgverse = lfgverse; // Mettez à jour lfgverse
                 await server.save();
                 const embed = new EmbedBuilder()
-                    .setColor('#FFFF00')
+                    .setColor(colorEmbed)
                     .setTitle('Serveur mis à jour')
                     .setDescription('Les informations du serveur ont été mises à jour.')
+                    .setThumbnail(interaction.guild.iconURL())
                     .addFields([
+                        { name: 'Nom du serveur', value: interaction.guild.name },
                         { name: 'ID du serveur', value: interaction.guild.id },
-                        { name: 'Canal de log', value: logChannelId || 'Non spécifié' }
+                        { name: 'Couleur des embeds', value: colorEmbed },
+                        { name: 'LFG Multi-serveurs', value: lfgverse ? 'Activé' : 'Désactivé' }
                     ])
-                    .setTimestamp();
+                    .setFooter({ text: `Mis à jour par ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
+                    .setTimestamp()
+
                 await interaction.reply({ embeds: [embed] });
             } else {
-                // Créez un nouveau document si aucun n'existe
                 server = new ServerCollection({
                     serverId: interaction.guild.id,
                     name: interaction.guild.name,
-                    createdBy: interaction.user.id,
-                    logChannelId: logChannelId
+                    color: colorEmbed,
+                    lfgverse: lfgverse // Nouveau champ pour LFG multi-serveurs
                 });
 
                 await server.save();
                 const embed = new EmbedBuilder()
-                    .setColor('#00FF00')
+                    .setColor(colorEmbed)
                     .setTitle('Serveur initialisé')
                     .setDescription('Le serveur a été initialisé avec succès.')
+                    .setThumbnail(interaction.guild.iconURL())
                     .addFields([
+                        { name: 'Nom du serveur', value: interaction.guild.name },
                         { name: 'ID du serveur', value: interaction.guild.id },
-                        { name: 'Canal de log', value: logChannelId || 'Non spécifié' }
+                        { name: 'Couleur des embeds', value: colorEmbed },
+                        { name: 'LFG Multi-serveurs', value: lfgverse ? 'Activé' : 'Désactivé' }
                     ])
-                    .setTimestamp();
+                    .setFooter({ text: `Initialisé par ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
+                    .setTimestamp()
+
                 await interaction.reply({ embeds: [embed] });
             }
         } catch (error) {

@@ -1,40 +1,32 @@
 const { REST, Routes } = require('discord.js');
-const { botConfig } = require('./src/config/botConfig');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
+// Charge les variables d'environnement depuis le fichier .env
+const { DISCORD_CLIENT_ID, GUILD_ID, DISCORD_TOKEN } = process.env;
+
+// Récupère tous les fichiers de commandes dans le répertoire ./src/commands
 const commands = [];
+const commandFolders = fs.readdirSync(path.join(__dirname, 'src', 'commands'));
 
-// Fonction pour lire les fichiers de manière récursive
-const readCommands = (dir) => {
-    const files = fs.readdirSync(dir);
-
-    for (const file of files) {
-        const filePath = path.join(dir, file);
-        const stat = fs.statSync(filePath);
-
-        if (stat.isDirectory()) {
-            // Si c'est un répertoire, on appelle récursivement la fonction
-            readCommands(filePath);
-        } else if (file.endsWith('.js')) {
-            // Si c'est un fichier .js, on le charge
-            const command = require(filePath);
-            commands.push(command.data.toJSON());
-        }
+for (const folder of commandFolders) {
+    const commandFiles = fs.readdirSync(path.join(__dirname, 'src', 'commands', folder)).filter(file => file.endsWith('.js'));
+    for (const file of commandFiles) {
+        const command = require(`./src/commands/${folder}/${file}`);
+        commands.push(command.data.toJSON());
     }
-};
+}
 
-// Lancer la lecture des commandes à partir du répertoire 'commands'
-readCommands('./src/commands/');
-
-const rest = new REST({ version: '10' }).setToken(botConfig.token);
+const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 (async () => {
     try {
         console.log('Started refreshing application (/) commands.');
 
         await rest.put(
-            Routes.applicationGuildCommands(botConfig.client),
+            // Routes.applicationGuildCommands(DISCORD_CLIENT_ID, GUILD_ID), // Pour les commandes de guilde
+            Routes.applicationCommands(DISCORD_CLIENT_ID), // Pour les commandes globales, décommentez cette ligne et commentez la ligne précédente pour des commandes globales
             { body: commands },
         );
 
