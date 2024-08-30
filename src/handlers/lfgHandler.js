@@ -18,8 +18,9 @@ module.exports = {
         const serverConfig = await ServerCollection.findOne({ serverId: interaction.guild.id });
         let color = serverConfig ? serverConfig.color : '#7C30B8';
 
+        // Assurez-vous que la couleur est au bon format
         if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
-            color = '#7C30B8';
+            color = '#7C30B8'; // Couleur par défaut si la couleur de la BDD est invalide
         }
 
         let userAlreadyInteracted = false;
@@ -59,35 +60,47 @@ module.exports = {
                     event.tentative.push(interaction.user.id);
                     event.participants = event.participants.filter(id => id !== interaction.user.id);
                     event.declined = event.declined.filter(id => id !== interaction.user.id);
-                    await interaction.reply({ content: 'Vous avez marqué votre participation comme tentative.', ephemeral: true });
+                    await interaction.reply({ content: 'Vous êtes en tentative pour cet événement!', ephemeral: true });
                 } else {
                     userAlreadyInteracted = true;
-                    await interaction.reply({ content: 'Vous avez déjà marqué votre participation comme tentative.', ephemeral: true });
+                    await interaction.reply({ content: 'Vous avez déjà répondu à cet événement.', ephemeral: true });
                 }
+                break;
+
+            case 'delete':
+                if (interaction.user.id !== event.creator) {
+                    await interaction.reply({ content: 'Vous n\'êtes pas le créateur de cet événement.', ephemeral: true });
+                    return;
+                }
+
+
+                try {
+                    await Event.findByIdAndDelete(eventId);
+                    await interaction.reply({ content: 'Événement supprimé avec succès.', ephemeral: true });
+                    await interaction.message.delete();
+                    return;
+                } catch (err) {
+                    console.error('Erreur lors de la suppression de l\'événement:', err);
+                    await interaction.reply({ content: 'Une erreur est survenue lors de la suppression de l\'événement.', ephemeral: true });
+                }
+                break;
+
+            case 'edit':
+                if (interaction.user.id !== event.creator) {
+                    await interaction.reply({ content: 'Vous n\'êtes pas le créateur de cet événement.', ephemeral: true });
+                    return;
+                }
+                await showEditModal(interaction, event);
+                return;
+
+            default:
                 break;
         }
 
         if (!userAlreadyInteracted) {
             await event.save();
-
-            const originalEventMessage = await interaction.channel.messages.fetch(interaction.message.id);
-            const embed = createEventEmbed(event, interaction.user.username, color);
-            await originalEventMessage.edit({ embeds: [embed] });
-
-            for (const shared of event.sharedServers) {
-                if (!shared.channelId) {
-                    console.error(`Erreur: channelId manquant pour l'événement partagé avec serverId ${shared.serverId}`);
-                    continue; // Saute cette itération si channelId est undefined
-                }
-
-                try {
-                    const sharedChannel = await interaction.client.channels.fetch(shared.channelId);
-                    const sharedMessage = await sharedChannel.messages.fetch(shared.messageId);
-                    await sharedMessage.edit({ embeds: [embed] });
-                } catch (error) {
-                    console.error(`Erreur lors de la mise à jour du message partagé: ${error.message}`);
-                }
-            }
+            const updatedEmbed = createEventEmbed(event, interaction.user.username, color);
+            await interaction.message.edit({ embeds: [updatedEmbed] });
         }
     },
 
@@ -152,6 +165,7 @@ module.exports = {
                 participants: [],
                 declined: [],
                 tentative: [],
+                serverId: interaction.guild.id
             });
 
             try {

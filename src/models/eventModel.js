@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 
 const eventSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
+    serverId: { type: String, required: true },
     name: { type: String, required: true },
     description: { type: String, required: true },
     date: { type: Date, required: true },
@@ -14,6 +15,7 @@ const eventSchema = new mongoose.Schema({
     participants: { type: [String], default: [] }, // Participants inscrits
     declined: { type: [String], default: [] },     // Participants ayant décliné
     tentative: { type: [String], default: [] },    // Participants en tentative
+    reminderSent: { type: Boolean, default: false },
     sharedServers: [{
         serverId: String,
         messageId: String,

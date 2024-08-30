@@ -27,7 +27,7 @@ module.exports = {
             if (!lfgVerseChannel) {
                 lfgVerseChannel = await targetServer.channels.create({
                     name: 'lfg-verse',
-                    type: 'GUILD_TEXT',
+                    type: ChannelType.GuildText,
                     parent: protocolCategory.id
                 });
             }
