@@ -9,6 +9,7 @@ const userStatsSchema = new mongoose.Schema({
     reactionAdd: { type: Number, default: 0 },
     reactionRemove: { type: Number, default: 0 }
 });
+
 const serverConfigSchema = new mongoose.Schema({
     serverId: { type: String, required: true, unique: true },
     name: { type: String, required: false },

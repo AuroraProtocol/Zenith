@@ -29,7 +29,7 @@ module.exports = {
         }
 
         let colorEmbed = interaction.options.getString('color') || '#7C30B8';
-        const lfgverse = interaction.options.getBoolean('lfgverse') || false; // Désactivé par défaut
+        const lfgverse = interaction.options.getBoolean('lfgverse') || false;
 
         if (!colorEmbed.startsWith('#')) {
             colorEmbed = `#${colorEmbed}`;
@@ -42,19 +42,22 @@ module.exports = {
         }
         try {
             let server = await ServerCollection.findOne({ serverId: interaction.guild.id });
-
+            const serverName = interaction.guild.name;
+            const serverId = interaction.guild.id;
+            const serverIcon = interaction.guild.iconURL();
             if (server) {
+                server.name = serverName;
                 server.color = colorEmbed;
-                server.lfgverse = lfgverse; // Mettez à jour lfgverse
+                server.lfgverse = lfgverse;
                 await server.save();
                 const embed = new EmbedBuilder()
                     .setColor(colorEmbed)
                     .setTitle('Serveur mis à jour')
                     .setDescription('Les informations du serveur ont été mises à jour.')
-                    .setThumbnail(interaction.guild.iconURL())
+                    .setThumbnail(serverIcon)
                     .addFields([
-                        { name: 'Nom du serveur', value: interaction.guild.name },
-                        { name: 'ID du serveur', value: interaction.guild.id },
+                        { name: 'Nom du serveur', value: serverName },
+                        { name: 'ID du serveur', value: serverId },
                         { name: 'Couleur des embeds', value: colorEmbed },
                         { name: 'LFG Multi-serveurs', value: lfgverse ? 'Activé' : 'Désactivé' }
                     ])
@@ -64,10 +67,10 @@ module.exports = {
                 await interaction.reply({ embeds: [embed] });
             } else {
                 server = new ServerCollection({
-                    serverId: interaction.guild.id,
-                    name: interaction.guild.name,
+                    serverId: serverId,
+                    name: serverName,
                     color: colorEmbed,
-                    lfgverse: lfgverse // Nouveau champ pour LFG multi-serveurs
+                    lfgverse: lfgverse
                 });
 
                 await server.save();
@@ -75,10 +78,10 @@ module.exports = {
                     .setColor(colorEmbed)
                     .setTitle('Serveur initialisé')
                     .setDescription('Le serveur a été initialisé avec succès.')
-                    .setThumbnail(interaction.guild.iconURL())
+                    .setThumbnail(serverIcon)
                     .addFields([
-                        { name: 'Nom du serveur', value: interaction.guild.name },
-                        { name: 'ID du serveur', value: interaction.guild.id },
+                        { name: 'Nom du serveur', value: serverName },
+                        { name: 'ID du serveur', value: serverId },
                         { name: 'Couleur des embeds', value: colorEmbed },
                         { name: 'LFG Multi-serveurs', value: lfgverse ? 'Activé' : 'Désactivé' }
                     ])

@@ -76,51 +76,59 @@ module.exports = {
         const margin = 20;
         const canvasWidth = 820 + margin * 2;
         const canvasHeight = 700 + margin * 2;
-
         const canvas = Canvas.createCanvas(canvasWidth, canvasHeight);
         const context = canvas.getContext('2d');
         const background = await Canvas.loadImage(backgroundPath);
         context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
 
+        const cardWidth = 270;
+        const cardHeight = 270;
+        const badgeSize = 30;
+        const RadiusUser = 10;
+        const RadiusServer = 35;
+        let infoY = 365;
+        const cardX = margin;
+        const cardY = margin;
+        const nameX = cardX + cardWidth + 50;
+        const nameY = cardY + 40;
+        const nicknameY = nameY + 80;
+        const badgesX = nameX - 22;
+        const badgesY = nicknameY + 48;
+        const badgeSpacing = 35;
+        const infoX = margin + 20;
+        const lineHeight = 108;
+
+
         if (showServerInfo) {
-     
+
             const response = await fetch(interaction.guild.iconURL({ format: 'png', dynamic: true, size: 1024 }));
             const buffer = await response.buffer();
 
             const pngBuffer = await sharp(buffer).png().toBuffer();
             const img = await Canvas.loadImage(pngBuffer);
 
-            const avatarX = margin;
-            const avatarY = margin;
-            const avatarWidth = 270;
-            const avatarHeight = 270;
-            const Radius = 35;
-
-            const infoX = margin + 20;
-            let infoY = 365;
-            const lineHeight = 108;
 
             context.save();
             context.beginPath();
-            context.moveTo(avatarX + Radius, avatarY);
-            context.lineTo(avatarX + avatarWidth - Radius, avatarY);
-            context.quadraticCurveTo(avatarX + avatarWidth, avatarY, avatarX + avatarWidth, avatarY + Radius);
-            context.lineTo(avatarX + avatarWidth, avatarY + avatarHeight - Radius);
-            context.quadraticCurveTo(avatarX + avatarWidth, avatarY + avatarHeight, avatarX + avatarWidth - Radius, avatarY + avatarHeight);
-            context.lineTo(avatarX + Radius, avatarY + avatarHeight);
-            context.quadraticCurveTo(avatarX, avatarY + avatarHeight, avatarX, avatarY + avatarHeight - Radius);
-            context.lineTo(avatarX, avatarY + Radius);
-            context.quadraticCurveTo(avatarX, avatarY, avatarX + Radius, avatarY);
+            context.moveTo(cardX + RadiusServer, cardY);
+            context.lineTo(cardX + cardWidth - RadiusServer, cardY);
+            context.quadraticCurveTo(cardX + cardWidth, cardY, cardX + cardWidth, cardY + RadiusServer);
+            context.lineTo(cardX + cardWidth, cardY + cardHeight - RadiusServer);
+            context.quadraticCurveTo(cardX + cardWidth, cardY + cardHeight, cardX + cardWidth - RadiusServer, cardY + cardHeight);
+            context.lineTo(cardX + RadiusServer, cardY + cardHeight);
+            context.quadraticCurveTo(cardX, cardY + cardHeight, cardX, cardY + cardHeight - RadiusServer);
+            context.lineTo(cardX, cardY + RadiusServer);
+            context.quadraticCurveTo(cardX, cardY, cardX + RadiusServer, cardY);
             context.closePath();
             context.lineWidth = 1;
             context.strokeStyle = 'rgba(255, 255, 255, 0.2)';
             context.stroke();
             context.clip();
-            context.drawImage(img, avatarX, avatarY, avatarWidth, avatarHeight);
+            context.drawImage(img, cardX, cardY, cardWidth, cardHeight);
             context.restore();
 
-            const nameX = avatarX + avatarWidth + 50;
-            const nameY = avatarY + 40;
+            const nameX = cardX + cardWidth + 50;
+            const nameY = cardY + 40;
             context.font = 'bold 24px Satoshi';
             context.fillStyle = '#ffffff';
             const truncatedUsername = truncateText(context, interaction.guild.name.toUpperCase(), canvasWidth - nameX - margin);
@@ -138,11 +146,7 @@ module.exports = {
             context.fillText(memberCount, infoX, infoY);
             infoY += lineHeight;
             context.fillText(userId, infoX, infoY);
-            const nicknameY = nameY + 80;
-            const badgesX = nameX - 22;
-            const badgesY = nicknameY + 48;
-            const badgeSize = 30;
-            const badgeSpacing = 35;
+
             if (interaction.guild.features.includes('COMMUNITY')) {
                 const communityBadgePath = path.join(__dirname, '../../img/badges/CommunityBoosted.svg');
                 const communityBadgeBuffer = await sharp(communityBadgePath).png().toBuffer();
@@ -158,41 +162,23 @@ module.exports = {
             const pngBuffer = await sharp(buffer).png().toBuffer();
             const img = await Canvas.loadImage(pngBuffer);
 
-            const nameX = avatarX + avatarWidth + 50;
-            const nameY = avatarY + 40;
-            const nicknameY = nameY + 80;
-            const avatarX = margin;
-            const avatarY = margin;
-            const avatarWidth = 270;
-            const avatarHeight = 270;
-            const Radius = 10;
-
-            const badgesX = nameX - 22;
-            const badgesY = nicknameY + 48;
-            const badgeSize = 30;
-            const badgeSpacing = 35;
-
-            const infoX = margin + 20;
-            let infoY = 365;
-            const lineHeight = 108;
-
             context.save();
             context.beginPath();
-            context.moveTo(avatarX + Radius, avatarY);
-            context.lineTo(avatarX + avatarWidth - Radius, avatarY);
-            context.quadraticCurveTo(avatarX + avatarWidth, avatarY, avatarX + avatarWidth, avatarY + Radius);
-            context.lineTo(avatarX + avatarWidth, avatarY + avatarHeight - Radius);
-            context.quadraticCurveTo(avatarX + avatarWidth, avatarY + avatarHeight, avatarX + avatarWidth - Radius, avatarY + avatarHeight);
-            context.lineTo(avatarX + Radius, avatarY + avatarHeight);
-            context.quadraticCurveTo(avatarX, avatarY + avatarHeight, avatarX, avatarY + avatarHeight - Radius);
-            context.lineTo(avatarX, avatarY + Radius);
-            context.quadraticCurveTo(avatarX, avatarY, avatarX + Radius, avatarY);
+            context.moveTo(cardX + RadiusUser, cardY);
+            context.lineTo(cardX + cardWidth - RadiusUser, cardY);
+            context.quadraticCurveTo(cardX + cardWidth, cardY, cardX + cardWidth, cardY + RadiusUser);
+            context.lineTo(cardX + cardWidth, cardY + cardHeight - RadiusUser);
+            context.quadraticCurveTo(cardX + cardWidth, cardY + cardHeight, cardX + cardWidth - RadiusUser, cardY + cardHeight);
+            context.lineTo(cardX + RadiusUser, cardY + cardHeight);
+            context.quadraticCurveTo(cardX, cardY + cardHeight, cardX, cardY + cardHeight - RadiusUser);
+            context.lineTo(cardX, cardY + RadiusUser);
+            context.quadraticCurveTo(cardX, cardY, cardX + RadiusUser, cardY);
             context.closePath();
             context.lineWidth = 1;
             context.strokeStyle = 'rgba(255, 255, 255, 0.2)';
             context.stroke();
             context.clip();
-            context.drawImage(img, avatarX, avatarY, avatarWidth, avatarHeight);
+            context.drawImage(img, cardX, cardY, cardWidth, cardHeight);
             context.restore();
 
             context.font = 'bold 24px Satoshi';
@@ -200,7 +186,7 @@ module.exports = {
             const truncatedUsername = truncateText(context, user.username.toUpperCase(), canvasWidth - nameX - margin);
             context.fillText(truncatedUsername, nameX, nameY);
 
-           
+
             context.font = 'italic 500 24px Satoshi';
             context.fillStyle = '#ffffff';
             const truncatedNickname = truncateText(context, (member.nickname || '').toUpperCase(), canvasWidth - nameX - margin);
@@ -265,8 +251,6 @@ module.exports = {
 
 
         try {
-
-
             const bandeauPath = path.join(__dirname, '../../img/icons/bandeau_beta.png');
             const bandeauBuffer = await sharp(bandeauPath).png().toBuffer();
             const bandeauImg = await Canvas.loadImage(bandeauBuffer);

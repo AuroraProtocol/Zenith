@@ -13,10 +13,6 @@ const client = new Client({
 client.on('messageCreate', async message => {
     require(path.join(__dirname, 'events/messages/messageCreate')).execute(client, message);
 });
-// client.on('messageCreate', async message => {
-//     require('./events/messages/messageCreate').execute(client, message);
-// });
-
 require('./connection/loadCommands')(client);
 require('./connection/loadEvents')(client);
 connectToDatabase();
